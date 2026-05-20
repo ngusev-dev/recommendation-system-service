@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Рекомендательная система фильмов</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #141414;
+            color: #ffffff;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #e50914;
+            margin-bottom: 30px;
+        }
+        .search-container {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 40px;
+        }
+        input {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 4px;
+            background-color: #333;
+            color: white;
+            font-size: 16px;
+        }
+        input:focus {
+            outline: 2px solid #e50914;
+        }
+        button {
+            padding: 15px 25px;
+            background-color: #e50914;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #b81d24;
+        }
+        .results-container {
+            width: 100%;
+            max-width: 800px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        .movie-card {
+            background-color: #181818;
+            border: 1px solid #282828;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .movie-info h3 {
+            margin: 0 0 8px 0;
+            color: #fff;
+        }
+        .movie-info p {
+            margin: 0;
+            color: #aaa;
+            font-size: 14px;
+        }
+        .score-badge {
+            background-color: #2e7d32;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .error {
+            color: #e50914;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Поиск похожих фильмов</h1>
+    
+    <div class="search-container">
+        <input type="text" id="movieTitle" placeholder="Введите название фильма (например, Inception)...">
+        <button onclick="getRecommendations()">Найти</button>
+    </div>
+
+    <div id="errorMessage" class="error"></div>
+    <div class="results-container" id="results"></div>
+
+    <script>
+        async function getRecommendations() {
+            const title = document.getElementById('movieTitle').value;
+            const resultsContainer = document.getElementById('results');
+            const errorContainer = document.getElementById('errorMessage');
+            
+            // Очищаем старые результаты
+            resultsContainer.innerHTML = '';
+            errorContainer.innerText = '';
+
+            if (!title) {
+                errorContainer.innerText = 'Пожалуйста, введите название фильма.';
+                return;
+            }
+
+            try {
+                // Делаем запрос к нашему Flask API
+                const response = await fetch(`/recommend?title=${encodeURIComponent(title)}&limit=5`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    errorContainer.innerText = data.error || 'Произошла ошибка при поиске.';
+                    return;
+                }
+
+                // Отрисовываем полученные фильмы
+                data.recommendations.forEach(movie => {
+                    const card = document.createElement('div');
+                    card.className = 'movie-card';
+                    card.innerHTML = `
+                        <div class="movie-info">
+                            <h3>${movie.title}</h3>
+                            <p>Рейтинг TMDB: ⭐ ${movie.vote_average}</p>
+                        </div>
+                        <div class="score-badge">Сходство: ${(movie.similarity_score * 100).toFixed(1)}%</div>
+                    `;
+                    resultsContainer.appendChild(card);
+                });
+
+            } catch (err) {
+                errorContainer.innerText = 'Не удалось связаться с сервером.';
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+</html>
